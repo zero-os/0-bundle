@@ -4,12 +4,16 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
-	logging "github.com/op/go-logging"
+	"github.com/op/go-logging"
 )
 
 var (
 	log = logging.MustGetLogger("0-bundle")
 )
+
+func init() {
+	logging.SetLevel(logging.INFO, "")
+}
 
 func main() {
 	// 1- mount the flist
@@ -19,7 +23,7 @@ func main() {
 
 	app.Name = "zbundle"
 	app.Usage = "run mini environments from flist"
-	app.UsageText = "0-bundle [options] flist mount-point"
+	app.UsageText = "0-bundle [options] flist root"
 	app.Version = "1.0"
 
 	app.Flags = []cli.Flag{
@@ -37,9 +41,28 @@ func main() {
 			Value: "ardb://hub.gig.tech:16379",
 			Usage: "storage url to use",
 		},
+		cli.BoolFlag{
+			Name:  "debug, d",
+			Usage: "run in debug mode",
+		},
+		cli.BoolFlag{
+			Name:  "no-exit",
+			Usage: "do not terminate (unmount the sandbox) after /etc/start exits",
+		},
 	}
 
 	app.ArgsUsage = "flist"
+	app.Before = func(ctx *cli.Context) error {
+		formatter := logging.MustStringFormatter("%{time}: %{color}%{module} %{level:.1s} > %{message} %{color:reset}")
+		logging.SetFormatter(formatter)
+		if ctx.GlobalBool("debug") {
+			logging.SetLevel(logging.DEBUG, "")
+		} else {
+			logging.SetLevel(logging.INFO, "")
+		}
+
+		return nil
+	}
 	app.Action = action
 
 	if err := app.Run(os.Args); err != nil {
