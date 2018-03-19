@@ -43,7 +43,6 @@ func action(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	log.Info("db path: %s", metaPath)
 
 	metaStore, err := meta.NewRocksMeta("", metaPath)
 	if err != nil {
