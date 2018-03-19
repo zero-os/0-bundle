@@ -79,7 +79,8 @@
   branch = "master"
   name = "github.com/tecbot/gorocksdb"
   packages = ["."]
-  revision = "3e476152774442234f9a9f747386a48a1d82a515"
+  revision = "94c01146efbac22eca4c89a59d6fef73505a9844"
+  source = "https://github.com/gigforks/gorocksdb.git"
 
 [[projects]]
   branch = "master"
@@ -122,6 +123,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf9997d9fc304579ab1ad43ad03693b6731462c878ed071315e062a20a7cab9d"
+  inputs-digest = "96078963aeb41385e22443e72477e170518fc1f1682f2a40abf28b280d7a1991"
   solver-name = "gps-cdcl"
   solver-version = 1

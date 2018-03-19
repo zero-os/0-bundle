@@ -48,3 +48,8 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[override]]
+  name = "github.com/tecbot/gorocksdb"
+  branch = "master"
+  source = "https://github.com/gigforks/gorocksdb.git"
