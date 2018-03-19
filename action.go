@@ -71,8 +71,9 @@ func action(ctx *cli.Context) error {
 
 	if ctx.GlobalBool("no-exit") {
 		if err != nil {
-			log.Error(err)
+			log.Errorf("%v", err)
 		}
+		log.Infof("flist exited, waiting for unmount (--no-exit was set)")
 		fs.Wait()
 	}
 
