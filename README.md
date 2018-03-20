@@ -40,6 +40,15 @@ runs in a chroot, there is noway to access the binaries from the host.
 zbundle --id test https://hub.gig.tech/azmy/bundle-test.flist
 ```
 
+## Error reporting upstream
+If the sandboxed exited with an error, the last 32KB of both stdout, and stderr and collected
+along with the exit error, and then reported to ALL provided `report` flag
+
+`report` is a url to the required report endpoint. We only currently support `redis` and `redis+tls`
+
+- for redis, the url formated like `redis://host:port`
+- for redis+tls, the url is formated like `redis+tls://host:port`
+
 ## Help
 
 ```

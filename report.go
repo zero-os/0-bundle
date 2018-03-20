@@ -5,12 +5,17 @@ import (
 	"net/url"
 	"time"
 
+	"encoding/json"
+
 	"github.com/codegangsta/cli"
 	"github.com/go-redis/redis"
 )
 
 //Report structure
 type Report struct {
+	//ID of the sandbox
+	ID string `json:"-"`
+
 	//Stdout captured stdout of the sandbox process
 	Stdout string `json:"stdout"`
 
@@ -37,6 +42,7 @@ func report(ctx *cli.Context, stdout, stderr []byte, result error) error {
 	recievers := ctx.GlobalStringSlice("report")
 
 	report := Report{
+		ID:       ctx.GlobalString("id"),
 		ExitTime: time.Now(),
 
 		//we convert both stdout and stderr to string, to make it humand readable
@@ -79,11 +85,22 @@ func redisReporter(u *url.URL, report *Report) error {
 		}
 	}
 
-	redis.NewClient(&redis.Options{
+	var password string
+	if u.User != nil {
+		password = u.User.String()
+	}
+
+	cl := redis.NewClient(&redis.Options{
 		Addr:      u.Host,
-		Password:  u.User.String(),
+		Password:  password,
 		TLSConfig: config,
 	})
 
-	return nil
+	defer cl.Close()
+	data, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+
+	return cl.LPush(report.ID, string(data)).Err()
 }
