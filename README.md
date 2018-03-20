@@ -37,7 +37,7 @@ runs in a chroot, there is noway to access the binaries from the host.
 
 ## Example
 ```
-zbundle https://hub.gig.tech/azmy/bundle-test.flist mount-location
+zbundle --id test https://hub.gig.tech/azmy/bundle-test.flist
 ```
 
 ## Help
@@ -48,7 +48,7 @@ NAME:
    zbundle - run mini environments from flist
 
 USAGE:
-   0-bundle [options] flist root
+   zbundle [options] <flist>
 
 VERSION:
    1.0
@@ -57,11 +57,12 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --id value, -i value       [required] ID of the sandbox
    --env value, -e value      custom environemt variables
-   --redis value, -r value    Redis server address for error reporting
+   --report value, -r value   report error back on failures to the given url
    --storage value, -s value  storage url to use (default: "ardb://hub.gig.tech:16379")
    --debug, -d                run in debug mode
    --no-exit                  do not terminate (unmount the sandbox) after /etc/start exits
    --help, -h                 show help
    --version, -v              print the version
-   ```
+```
