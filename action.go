@@ -7,26 +7,19 @@ import (
 	"path"
 
 	"github.com/codegangsta/cli"
-	"github.com/pborman/uuid"
 	g8ufs "github.com/zero-os/0-fs"
 	"github.com/zero-os/0-fs/meta"
 	"github.com/zero-os/0-fs/storage"
 )
 
 var (
-	BaseFSDir = path.Join(os.TempDir(), "zbundle")
+	//BaseFSDir where we keep the cache and the working place of fuse
+	BaseFSDir    = path.Join(os.TempDir(), "zbundle.db")
+	BaseMountDir = path.Join(os.TempDir(), "zbundle")
 )
 
-func report(ctx *cli.Context, stdout, stderr []byte, err error) error {
-	log.Error("reporting error")
-	log.Error(string(stdout))
-	log.Error(string(stderr))
-	log.Errorf("%v", err)
-	return nil
-}
-
 func action(ctx *cli.Context) error {
-	if ctx.NArg() != 2 {
+	if ctx.NArg() != 1 {
 		return fmt.Errorf("invalid number of arguments")
 	}
 
@@ -40,11 +33,14 @@ func action(ctx *cli.Context) error {
 	}
 
 	flist := ctx.Args()[0]
-	root := ctx.Args()[1]
+	id := ctx.GlobalString("id")
+	root := path.Join(BaseMountDir, id)
 
 	os.MkdirAll(root, 0755)
+	if g8ufs.IsMount(root) {
+		return fmt.Errorf("a sandbox is running with the same id")
+	}
 	// should we do this under temp?
-	id := uuid.New()
 	namespace := path.Join(BaseFSDir, id)
 
 	metaPath, err := getMetaDB(namespace, flist)
@@ -89,6 +85,7 @@ func action(ctx *cli.Context) error {
 			log.Errorf("%v", err)
 		}
 		log.Infof("flist exited, waiting for unmount (--no-exit was set)")
+		log.Infof("the sandbox is mounted under: %s", root)
 		fs.Wait()
 	}
 

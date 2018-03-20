@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/codegangsta/cli"
@@ -23,10 +24,14 @@ func main() {
 
 	app.Name = "zbundle"
 	app.Usage = "run mini environments from flist"
-	app.UsageText = "0-bundle [options] flist root"
+	app.UsageText = "zbundle [options] <flist>"
 	app.Version = "1.0"
 
 	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "id, i",
+			Usage: "[required] ID of the sandbox",
+		},
 		cli.StringSliceFlag{
 			Name:  "env, e",
 			Usage: "custom environemt variables",
@@ -58,6 +63,14 @@ func main() {
 			logging.SetLevel(logging.DEBUG, "")
 		} else {
 			logging.SetLevel(logging.INFO, "")
+		}
+
+		//validate required inputs
+		for _, key := range []string{"id"} {
+			value := ctx.GlobalString(key)
+			if value == "" {
+				return fmt.Errorf("flag --%s is required", key)
+			}
 		}
 
 		return nil

@@ -29,6 +29,21 @@
   revision = "0b5cd0856798cbbcbd01e8240333e9eeadd337b9"
 
 [[projects]]
+  name = "github.com/go-redis/redis"
+  packages = [
+    ".",
+    "internal",
+    "internal/consistenthash",
+    "internal/hashtag",
+    "internal/pool",
+    "internal/proto",
+    "internal/singleflight",
+    "internal/util"
+  ]
+  revision = "877867d2845fbaf86798befe410b6ceb6f5c29a3"
+  version = "v6.10.2"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
@@ -58,12 +73,6 @@
   version = "v2.1.0"
 
 [[projects]]
-  name = "github.com/pborman/uuid"
-  packages = ["."]
-  revision = "e790cca94e6cc75c7064b1332e63811d4aae1a53"
-  version = "v1.1"
-
-[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -89,6 +98,7 @@
   revision = "35c4b17eecf6c3c2350f8cecaf1b3f9f7fafc242"
 
 [[projects]]
+  branch = "master"
   name = "github.com/zero-os/0-fs"
   packages = [
     ".",
@@ -97,14 +107,19 @@
     "rofs",
     "storage"
   ]
-  revision = "cae5a57c145b05f6ccfdf2977f5f107a3d85950c"
-  version = "v1.1.0-alpha-7"
+  revision = "99cb842fa382e3e7eddd96e18fb2bdd2fdbf64ad"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
   revision = "92b859f39abd2d91a854c9f9c4621b2f5054a92d"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   name = "zombiezen.com/go/capnproto2"
@@ -123,6 +138,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "96078963aeb41385e22443e72477e170518fc1f1682f2a40abf28b280d7a1991"
+  inputs-digest = "88aa75d9b9cb7b4b4fdce92549e8049fa665bc4ad333e908c17723612dcdce5d"
   solver-name = "gps-cdcl"
   solver-version = 1
