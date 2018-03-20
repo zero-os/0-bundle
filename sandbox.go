@@ -11,7 +11,11 @@ import (
 )
 
 const (
+	//EnvFile default location of env file
 	EnvFile = "/etc/env"
+
+	//BufferSize of data captured from the sandbox stdout stderr (tail)
+	BufferSize = 32 * 1024 // 32KB
 )
 
 func parseEnv(r io.Reader) ([]string, error) {
@@ -85,14 +89,17 @@ func environ(root string) ([]string, error) {
 	return env, nil
 }
 
-func sandbox(root string, userenv []string) error {
-
+//sandbox, runs the sandbox and return the captured stdout, stderr, and exit error
+func sandbox(root string, userenv []string) ([]byte, []byte, error) {
 	//read env
 	log.Debugf("reading the env")
 	flistenv, err := environ(root)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
+
+	stdout := NewTailBuffer(BufferSize)
+	stderr := NewTailBuffer(BufferSize)
 
 	//start
 	cmd := exec.Cmd{
@@ -102,9 +109,10 @@ func sandbox(root string, userenv []string) error {
 		SysProcAttr: &syscall.SysProcAttr{
 			Chroot: root,
 		},
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stdout: io.MultiWriter(os.Stdout, stdout),
+		Stderr: io.MultiWriter(os.Stderr, stderr),
 	}
 
-	return cmd.Run()
+	err = cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), err
 }

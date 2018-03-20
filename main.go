@@ -31,10 +31,9 @@ func main() {
 			Name:  "env, e",
 			Usage: "custom environemt variables",
 		},
-		cli.StringFlag{
-			Name:  "redis, r",
-			Value: "",
-			Usage: "Redis server address for error reporting",
+		cli.StringSliceFlag{
+			Name:  "report, r",
+			Usage: "report error back on failures to the given url",
 		},
 		cli.StringFlag{
 			Name:  "storage, s",

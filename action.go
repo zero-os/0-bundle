@@ -17,7 +17,11 @@ var (
 	BaseFSDir = path.Join(os.TempDir(), "zbundle")
 )
 
-func reportToRedis(ctx *cli.Context, err error) error {
+func report(ctx *cli.Context, stdout, stderr []byte, err error) error {
+	log.Error("reporting error")
+	log.Error(string(stdout))
+	log.Error(string(stderr))
+	log.Errorf("%v", err)
 	return nil
 }
 
@@ -72,7 +76,13 @@ func action(ctx *cli.Context) error {
 	defer os.RemoveAll(fmt.Sprintf("%s.db", namespace))
 	defer fs.Unmount()
 
-	err = sandbox(root, ctx.GlobalStringSlice("env"))
+	stdout, stderr, err := sandbox(root, ctx.GlobalStringSlice("env"))
+
+	if err != nil {
+		if err := report(ctx, stdout, stderr, err); err != nil {
+			log.Errorf("report: %s", err)
+		}
+	}
 
 	if ctx.GlobalBool("no-exit") {
 		if err != nil {
@@ -80,12 +90,6 @@ func action(ctx *cli.Context) error {
 		}
 		log.Infof("flist exited, waiting for unmount (--no-exit was set)")
 		fs.Wait()
-	}
-
-	if err != nil {
-		if err := reportToRedis(ctx, err); err != nil {
-			log.Errorf("failed to report to redis: %s", err)
-		}
 	}
 
 	return err
