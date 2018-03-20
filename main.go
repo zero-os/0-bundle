@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	log = logging.MustGetLogger("0-bundle")
+	log = logging.MustGetLogger("zbundle")
 )
 
 func init() {
@@ -57,8 +57,11 @@ func main() {
 
 	app.ArgsUsage = "flist"
 	app.Before = func(ctx *cli.Context) error {
-		formatter := logging.MustStringFormatter("%{time}: %{color}%{module} %{level:.1s} > %{message} %{color:reset}")
-		logging.SetFormatter(formatter)
+		logging.Reset()
+		backend := logging.NewLogBackend(os.Stdout, "", 0)
+		formatter := logging.MustStringFormatter("%{color}%{time:15:04:05.000} %{module} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}")
+		logging.SetBackend(logging.NewBackendFormatter(backend, formatter))
+
 		if ctx.GlobalBool("debug") {
 			logging.SetLevel(logging.DEBUG, "")
 		} else {
