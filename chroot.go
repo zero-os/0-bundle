@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"syscall"
 
 	g8ufs "github.com/zero-os/0-fs"
 	"github.com/zero-os/0-fs/meta"
@@ -149,6 +150,7 @@ func getMetaDB(namespace, src string) (string, error) {
 	return db, nil
 }
 
+//Chroot builds an flist chroot mount
 type Chroot struct {
 	ID      string
 	Flist   string
@@ -157,17 +159,41 @@ type Chroot struct {
 	fs *g8ufs.G8ufs
 }
 
+//Root returns the mountpoint path
 func (c *Chroot) Root() string {
 	return path.Join(BaseMountDir, c.ID)
 }
 
+func (c *Chroot) prepare() error {
+	root := c.Root()
+	for _, dir := range []string{"proc", "dev", "sys"} {
+		target := path.Join(root, dir)
+		os.MkdirAll(target, 0755)
+		if err := syscall.Mount(path.Join("/", dir), target, "", syscall.MS_BIND, ""); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Chroot) unPrepare() {
+	root := c.Root()
+	for _, dir := range []string{"proc", "dev", "sys"} {
+		target := path.Join(root, dir)
+		syscall.Unmount(target, syscall.MNT_FORCE|syscall.MNT_DETACH)
+	}
+
+}
+
+//Start starts the chroot
 func (c *Chroot) Start() error {
 	root := c.Root()
 
-	os.MkdirAll(root, 0755)
 	if g8ufs.IsMount(root) {
 		return fmt.Errorf("a chroot is running with the same id")
 	}
+	os.MkdirAll(root, 0755)
 	// should we do this under temp?
 	namespace := path.Join(BaseFSDir, c.ID)
 
@@ -200,10 +226,15 @@ func (c *Chroot) Start() error {
 	}
 
 	fs, err := g8ufs.Mount(&opt)
+	if err != nil {
+		return err
+	}
+
 	c.fs = fs
-	return err
+	return c.prepare()
 }
 
+//Stop stops the chroot
 func (c *Chroot) Stop() error {
 	if c.fs == nil {
 		return fmt.Errorf("chroot is not started")
@@ -211,12 +242,13 @@ func (c *Chroot) Stop() error {
 
 	namespace := path.Join(BaseFSDir, c.ID)
 
-	os.RemoveAll(namespace)
-	os.RemoveAll(fmt.Sprintf("%s.db", namespace))
+	defer os.RemoveAll(namespace)
+	defer os.RemoveAll(fmt.Sprintf("%s.db", namespace))
+	c.unPrepare()
 	return c.fs.Unmount()
 }
 
-//Wait deprecated
+//Wait for chroot to terminate
 func (c *Chroot) Wait() error {
 	return c.fs.Wait()
 }

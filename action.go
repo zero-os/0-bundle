@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
+	"syscall"
 
 	"github.com/codegangsta/cli"
 )
@@ -40,6 +42,15 @@ func action(ctx *cli.Context) error {
 		UserEnv: ctx.GlobalStringSlice("env"),
 	}
 
+	//handle termination signals
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		//wait for termination signal to forward
+		sig := <-ch
+		sandbox.Signal(sig)
+	}()
+
 	stdout, stderr, err := sandbox.Run()
 
 	if err != nil {
@@ -54,6 +65,14 @@ func action(ctx *cli.Context) error {
 		}
 		log.Infof("flist exited, waiting for unmount (--no-exit was set)")
 		log.Infof("the sandbox is mounted under: %s", chroot.Root())
+		log.Infof("Ctrl+C to terminate the sandbox")
+		go func() {
+			//wait for termination signal to terminate the sandbox
+			<-ch
+			log.Infof("terminating ...")
+			chroot.Stop()
+		}()
+
 		chroot.Wait()
 	}
 
