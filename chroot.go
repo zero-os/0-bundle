@@ -10,6 +10,10 @@ import (
 	"net/url"
 	"os"
 	"path"
+
+	g8ufs "github.com/zero-os/0-fs"
+	"github.com/zero-os/0-fs/meta"
+	"github.com/zero-os/0-fs/storage"
 )
 
 //a helper to close all under laying readers in a flist file stream since decompression doesn't
@@ -143,4 +147,76 @@ func getMetaDB(namespace, src string) (string, error) {
 	}
 
 	return db, nil
+}
+
+type Chroot struct {
+	ID      string
+	Flist   string
+	Storage string
+
+	fs *g8ufs.G8ufs
+}
+
+func (c *Chroot) Root() string {
+	return path.Join(BaseMountDir, c.ID)
+}
+
+func (c *Chroot) Start() error {
+	root := c.Root()
+
+	os.MkdirAll(root, 0755)
+	if g8ufs.IsMount(root) {
+		return fmt.Errorf("a chroot is running with the same id")
+	}
+	// should we do this under temp?
+	namespace := path.Join(BaseFSDir, c.ID)
+
+	metaPath, err := getMetaDB(namespace, c.Flist)
+	if err != nil {
+		return err
+	}
+
+	metaStore, err := meta.NewRocksMeta("", metaPath)
+	if err != nil {
+		return err
+	}
+
+	u, err := url.Parse(c.Storage)
+	if err != nil {
+		return fmt.Errorf("invalid storage url: %s", err)
+	}
+
+	stor, err := storage.NewARDBStorage(u)
+	if err != nil {
+		return err
+	}
+
+	opt := g8ufs.Options{
+		Backend:   namespace,
+		Target:    root,
+		MetaStore: metaStore,
+		Storage:   stor,
+		Cache:     path.Join(BaseFSDir, "cache"),
+	}
+
+	fs, err := g8ufs.Mount(&opt)
+	c.fs = fs
+	return err
+}
+
+func (c *Chroot) Stop() error {
+	if c.fs == nil {
+		return fmt.Errorf("chroot is not started")
+	}
+
+	namespace := path.Join(BaseFSDir, c.ID)
+
+	os.RemoveAll(namespace)
+	os.RemoveAll(fmt.Sprintf("%s.db", namespace))
+	return c.fs.Unmount()
+}
+
+//Wait deprecated
+func (c *Chroot) Wait() error {
+	return c.fs.Wait()
 }

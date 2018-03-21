@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -87,6 +88,50 @@ func environ(root string) ([]string, error) {
 	}
 
 	return env, nil
+}
+
+type Sandbox struct {
+	Root    string
+	UserEnv []string
+
+	cmd *exec.Cmd
+}
+
+//Run runs the sandbox, blocks until the sandbox
+//entry point exits
+func (s *Sandbox) Run() ([]byte, []byte, error) {
+	log.Debugf("reading the env")
+	flistenv, err := environ(s.Root)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stdout := NewTailBuffer(BufferSize)
+	stderr := NewTailBuffer(BufferSize)
+
+	//start
+	cmd := exec.Cmd{
+		Path: "/etc/start",
+		Dir:  "/",
+		Env:  append(flistenv, s.UserEnv...),
+		SysProcAttr: &syscall.SysProcAttr{
+			Chroot: s.Root,
+		},
+		Stdout: io.MultiWriter(os.Stdout, stdout),
+		Stderr: io.MultiWriter(os.Stderr, stderr),
+	}
+
+	err = cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), err
+}
+
+//Signal the sandbox proces
+func (s *Sandbox) Signal(signal os.Signal) error {
+	if s.cmd == nil || s.cmd.Process == nil {
+		return fmt.Errorf("sandbox is not started")
+	}
+
+	return s.cmd.Process.Signal(signal)
 }
 
 //sandbox, runs the sandbox and return the captured stdout, stderr, and exit error
