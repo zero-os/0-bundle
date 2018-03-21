@@ -24,13 +24,18 @@ func main() {
 
 	app.Name = "zbundle"
 	app.Usage = "run mini environments from flist"
-	app.UsageText = "zbundle [options] <flist>"
+	app.UsageText = "zbundle [options] <flist> <args>"
 	app.Version = "1.0"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "id, i",
 			Usage: "[required] ID of the sandbox",
+		},
+		cli.StringFlag{
+			Name:  "entry-point",
+			Value: "/etc/start",
+			Usage: "sandbox entry point",
 		},
 		cli.StringSliceFlag{
 			Name:  "env, e",

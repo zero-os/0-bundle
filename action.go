@@ -17,8 +17,8 @@ var (
 )
 
 func action(ctx *cli.Context) error {
-	if ctx.NArg() != 1 {
-		return fmt.Errorf("invalid number of arguments")
+	if ctx.NArg() < 1 {
+		return fmt.Errorf("flist is missing")
 	}
 
 	if !isRoot() {
@@ -27,7 +27,7 @@ func action(ctx *cli.Context) error {
 
 	chroot := Chroot{
 		ID:      ctx.GlobalString("id"),
-		Flist:   ctx.Args()[0],
+		Flist:   ctx.Args().First(),
 		Storage: ctx.GlobalString("storage"),
 	}
 
@@ -38,8 +38,10 @@ func action(ctx *cli.Context) error {
 	defer chroot.Stop()
 
 	sandbox := Sandbox{
-		Root:    chroot.Root(),
-		UserEnv: ctx.GlobalStringSlice("env"),
+		Root:       chroot.Root(),
+		UserEnv:    ctx.GlobalStringSlice("env"),
+		EntryPoint: ctx.GlobalString("entry-point"),
+		Args:       ctx.Args().Tail(),
 	}
 
 	//handle termination signals

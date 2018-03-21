@@ -91,8 +91,10 @@ func environ(root string) ([]string, error) {
 }
 
 type Sandbox struct {
-	Root    string
-	UserEnv []string
+	Root       string
+	UserEnv    []string
+	EntryPoint string
+	Args       []string
 
 	cmd *exec.Cmd
 }
@@ -109,10 +111,13 @@ func (s *Sandbox) Run() ([]byte, []byte, error) {
 	stdout := NewTailBuffer(BufferSize)
 	stderr := NewTailBuffer(BufferSize)
 
+	args := []string{s.EntryPoint}
+	args = append(args, s.Args...)
 	//start
 	cmd := exec.Cmd{
-		Path: "/etc/start",
+		Path: s.EntryPoint,
 		Dir:  "/",
+		Args: args,
 		Env:  append(flistenv, s.UserEnv...),
 		SysProcAttr: &syscall.SysProcAttr{
 			Chroot: s.Root,

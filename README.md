@@ -31,6 +31,10 @@ to the `start` excutable.
 - if `start` is a shell script, the excuting `shebang` must actually be part of the flist otherwise it will not work, because the flist
 runs in a chroot, there is noway to access the binaries from the host.
 
+>Note: you can always override the entry point by using `--entry-point` flag
+
+>Note: all command line arguments provided after the flist, are passed to the entry point as arguments
+
 ### Notes
 - the env file is NOT a shell script
 - empty lines and lines starting with `#` are ignored
@@ -67,6 +71,7 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --id value, -i value       [required] ID of the sandbox
+   --entry-point value        sandbox entry point (default: "/etc/start")
    --env value, -e value      custom environemt variables
    --report value, -r value   report error back on failures to the given url
    --storage value, -s value  storage url to use (default: "ardb://hub.gig.tech:16379")
