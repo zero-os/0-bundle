@@ -61,7 +61,7 @@ NAME:
    zbundle - run mini environments from flist
 
 USAGE:
-   zbundle [options] <flist>
+   zbundle [options] <flist> <args>
 
 VERSION:
    1.0
