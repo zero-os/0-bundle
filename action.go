@@ -48,7 +48,9 @@ func action(ctx *cli.Context) error {
 	go func() {
 		//wait for termination signal to forward
 		sig := <-ch
-		sandbox.Signal(sig)
+		if err := sandbox.Signal(sig); err != nil {
+			log.Infof("process has already exited, Ctrl+C again to terminate the sandbox")
+		}
 	}()
 
 	stdout, stderr, err := sandbox.Run()
