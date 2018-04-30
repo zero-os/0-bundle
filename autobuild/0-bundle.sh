@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+ncpu=$(grep 'model name' /proc/cpuinfo | wc -l)
+
 apt-get update
 apt-get install -y curl git build-essential
 apt-get install -y libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev # libzstd-dev
@@ -18,7 +20,7 @@ curl -L https://github.com/facebook/rocksdb/archive/${rversion}.tar.gz > /tmp/ro
 tar -xf /tmp/rocksdb.tar.gz -C /tmp/
 
 pushd /tmp/rocksdb-${rversion}
-PORTABLE=1 make -j 24 static_lib
+PORTABLE=1 make -j ${ncpu} static_lib
 PORTABLE=1 make install
 popd
 
@@ -31,13 +33,16 @@ cp -ar /0-bundle $GOPATH/src/github.com/zero-os/
 
 pushd $GOPATH/src/github.com/zero-os/0-bundle
 go get -v ./...
+
+# Fix Makefile to produce static build
+sed -i 's/-lrocks/-static -lrocks/' Makefile
 make build
 
 # reduce binary size
 strip -s zbundle
 
 # print shared libs
-ldd zbundle
+ldd zbundle || true
 popd
 
 mkdir -p /tmp/root/bin
