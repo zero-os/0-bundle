@@ -5,7 +5,8 @@ import (
 	"os"
 	"path"
 	"github.com/codegangsta/cli"
-	"sync"
+	"net/url"
+	"strings"
 )
 
 var (
@@ -24,9 +25,21 @@ func action(ctx *cli.Context) error {
 	}
 
 	updateChan := make(chan bool)
-	// Check for updates
+	// Check for flist url and start updateChecker routine
 	flist := ctx.Args().First()
-	checkFlistUpdate(flist, updateChan)
+	flistUrl, err := url.Parse(flist)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	flistPath, flistName := path.Split(flistUrl.Path)
+	flistUsername := strings.TrimSuffix(strings.TrimPrefix(flistPath, "/"), "/")
+	flistUpdateTime, err := getFlistLastUpdate(flistUsername, flistName)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	go checkFlistUpdate(flistUsername, flistName, flistUpdateTime, updateChan)
 
 	// Start the sandbox
 	chroot := Chroot{
@@ -45,10 +58,7 @@ func action(ctx *cli.Context) error {
 		chroot: &chroot,
 		sandbox: &sandbox,
 	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	bundle.Run(ctx, updateChan, &wg)
-	wg.Wait()
+	bundle.Run(ctx, updateChan)
 
 	return nil
 }

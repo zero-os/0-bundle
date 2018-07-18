@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/codegangsta/cli"
 	"os"
-	"sync"
 	"syscall"
 	"os/signal"
+	"time"
 )
 
 type Bundle struct {
@@ -14,8 +14,7 @@ type Bundle struct {
 }
 
 
-func (bundle *Bundle) Run(ctx *cli.Context, updateCh chan bool, wg *sync.WaitGroup){
-	defer wg.Done()
+func (bundle *Bundle) Run(ctx *cli.Context, updateCh chan bool){
 	defer bundle.chroot.Stop()
 	signalChan := make(chan os.Signal)
 	//listen for termination signals
@@ -27,22 +26,20 @@ func (bundle *Bundle) Run(ctx *cli.Context, updateCh chan bool, wg *sync.WaitGro
 			return
 		}
 		exitChan := make(chan struct{}, 1)
-		go func (ch chan struct{}){
-			stdout, stderr, err := bundle.sandbox.Run()
-			if err != nil {
-				if err := report(ctx, stdout, stderr, err); err != nil {
-					log.Errorf("report: %s", err)
-				}
-			}
-			ch <- struct {}{}
-		}(exitChan)
+		go bundle.execSandbox(ctx, exitChan)
 
 		select {
 		case <-updateCh:
-			bundle.sandbox.Signal(syscall.SIGTERM)
+			log.Info("Flist updates were found, trying to restart 0-bundle ...")
+			sandboxTerminated := bundle.stopSandbox(exitChan)
 			bundle.chroot.Stop()
 			bundle.chroot.Wait()
-			continue
+			close(exitChan)
+			if (sandboxTerminated){
+				continue
+			}
+			log.Error("Failed to stop zbundle sandbox, exiting...")
+			return
 		case <-exitChan:
 			if ctx.GlobalBool("no-exit") {
 				bundle.sandBoxNoExit(signalChan)
@@ -58,11 +55,35 @@ func (bundle *Bundle) Run(ctx *cli.Context, updateCh chan bool, wg *sync.WaitGro
 	return
 }
 
-func (bundle *Bundle) Stop(ctx *cli.Context, signal os.Signal){
-	if err := bundle.sandbox.Signal(signal); err != nil {
-		log.Infof("process has already exited, Ctrl+C again to terminate the sandbox")
+func (bundle *Bundle) stopSandbox(exitChan chan struct{}) bool {
+	err := bundle.sandbox.Signal(syscall.SIGTERM)
+	if err != nil {
+		return true
 	}
+	//retry to terminate sandbox 3 times
+	for i := 0; i < 3; i++ {
+		select {
+		case <- exitChan:
+			return true
+		case <- time.After(5 * time.Second):
+			log.Infof("Failed to stop bundle sandbox, retry %d/3", i+1)
+			bundle.sandbox.Signal(syscall.SIGTERM)
+		}
+	}
+	bundle.sandbox.Signal(syscall.SIGKILL)
+	return false
 }
+
+func (bundle *Bundle) execSandbox(ctx *cli.Context, exitChan chan struct{}){
+	stdout, stderr, err := bundle.sandbox.Run()
+	if err != nil {
+		if err := report(ctx, stdout, stderr, err); err != nil {
+			log.Errorf("report: %s", err)
+		}
+	}
+	exitChan <- struct {}{}
+}
+
 
 func (bundle *Bundle) sandBoxNoExit(ch chan os.Signal) {
 	log.Infof("flist exited, waiting for unmount (--no-exit was set)")
