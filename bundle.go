@@ -45,7 +45,8 @@ func (bundle *Bundle) Run(ctx *cli.Context, updateCh chan bool){
 				bundle.sandBoxNoExit(signalChan)
 			}
 			return
-		case <- signalChan:
+		case sigCh := <- signalChan:
+			bundle.sandbox.Signal(sigCh)
 			if ctx.GlobalBool("no-exit") {
 				bundle.sandBoxNoExit(signalChan)
 			}
