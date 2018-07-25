@@ -3,11 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"path"
-	"syscall"
-
 	"github.com/codegangsta/cli"
+	"net/url"
 )
 
 var (
@@ -25,17 +23,28 @@ func action(ctx *cli.Context) error {
 		return fmt.Errorf("please run as root")
 	}
 
+	updateChan := make(chan bool)
+	// Check for flist url and start updateChecker routine
+	flist := ctx.Args().First()
+	_, err := url.Parse(flist)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	flistHash, err := getFlistHash(flist)
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
+	updateInterval := ctx.GlobalInt("update")
+	go checkFlistUpdate(flist, flistHash, updateInterval, updateChan)
+
+	// Start the sandbox
 	chroot := Chroot{
 		ID:      ctx.GlobalString("id"),
 		Flist:   ctx.Args().First(),
 		Storage: ctx.GlobalString("storage"),
 	}
-
-	if err := chroot.Start(); err != nil {
-		return err
-	}
-
-	defer chroot.Stop()
 
 	sandbox := Sandbox{
 		Root:       chroot.Root(),
@@ -43,42 +52,11 @@ func action(ctx *cli.Context) error {
 		EntryPoint: ctx.GlobalString("entry-point"),
 		Args:       ctx.Args().Tail(),
 	}
-
-	//handle termination signals
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGINT)
-	go func() {
-		//wait for termination signal to forward
-		sig := <-ch
-		if err := sandbox.Signal(sig); err != nil {
-			log.Infof("process has already exited, Ctrl+C again to terminate the sandbox")
-		}
-	}()
-
-	stdout, stderr, err := sandbox.Run()
-
-	if err != nil {
-		if err := report(ctx, stdout, stderr, err); err != nil {
-			log.Errorf("report: %s", err)
-		}
+	bundle := Bundle{
+		chroot: &chroot,
+		sandbox: &sandbox,
 	}
+	bundle.Run(ctx, updateChan)
 
-	if ctx.GlobalBool("no-exit") {
-		if err != nil {
-			log.Errorf("%v", err)
-		}
-		log.Infof("flist exited, waiting for unmount (--no-exit was set)")
-		log.Infof("the sandbox is mounted under: %s", chroot.Root())
-		log.Infof("Ctrl+C to terminate the sandbox")
-		go func() {
-			//wait for termination signal to terminate the sandbox
-			<-ch
-			log.Infof("terminating ...")
-			chroot.Stop()
-		}()
-
-		chroot.Wait()
-	}
-
-	return err
+	return nil
 }

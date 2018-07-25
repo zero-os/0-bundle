@@ -58,6 +58,12 @@ func main() {
 			Name:  "no-exit",
 			Usage: "do not terminate (unmount the sandbox) after /etc/start exits",
 		},
+		cli.IntFlag{
+			Name:  "update",
+			Value: 30,
+			Usage: "Check for flist updates interval in minutes",
+		},
+
 	}
 
 	app.ArgsUsage = "flist"
